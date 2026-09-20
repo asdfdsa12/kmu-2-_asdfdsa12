@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 트리의 괄호 표기법을 입력받아 여러 정보를 출력하는 프로그램 (C 언어)
  *
  * - 노드 포인터로 이루어진 별도의 트리 자료구조를 만들지 않는다.
@@ -8,6 +8,7 @@
  * - 노드는 항상 영문 대문자 한 글자이므로, 자식 목록/부모/깊이 등은
  *   26개 크기의 배열(인덱스 = 'A' - 문자)로 관리한다.
  */
+
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <string.h>
@@ -16,7 +17,7 @@
 #define MAXN 26          /* 노드는 A~Z, 최대 26개 */
 #define MAXLEN 4096      /* 입력 문자열 최대 길이 */
 
-/* ---- 트리 정보를 저장하는 전역 배열들 (노드 인덱스 = 문자 - 'A') ---- */
+ /* ---- 트리 정보를 저장하는 전역 배열들 (노드 인덱스 = 문자 - 'A') ---- */
 static int  parentOf[MAXN];        /* 부모 노드 인덱스, 루트는 -1 */
 static int  childList[MAXN][MAXN]; /* childList[i][k] = i번 노드의 k번째 자식 인덱스 */
 static int  childCount[MAXN];      /* i번 노드의 자식 수 (최종 차수) */
@@ -42,7 +43,7 @@ static char buf[MAXLEN];
  *   degreeStack[] : nodeStack 과 짝을 이루는, 각 노드의 자식 수를 세는
  *                   "카운터 스택" (차수 계산에 사용)
  */
-int analyze(const char *s) {
+int analyze(const char* s) {
     int nodeStack[MAXN];
     int degreeStack[MAXN];
     int top = -1; /* 두 스택 공용 top 인덱스 */
@@ -88,7 +89,8 @@ int analyze(const char *s) {
                 childList[par][childCount[par]] = idx;
                 childCount[par]++;
                 degreeStack[top]++;
-            } else {
+            }
+            else {
                 rootIndex = idx;
             }
 
@@ -157,14 +159,49 @@ int analyze(const char *s) {
     return 0;
 }
 
+/*
+ * 같은 레벨에서 왼쪽부터 오른쪽으로(BFS, 레벨 순회) 보았을 때
+ * 노드 이름이 A, B, C, ... 순서로 정확히 매겨져 있는지 검사한다.
+ * 큐(배열로 구현)를 사용해 레벨 순회를 수행한다.
+ *
+ *   예) A(B(E,F),C,D(G))  -> BFS 순서: A,B,C,D,E,F,G  (통과)
+ *       C(A)              -> BFS 순서: C,A            (실패)
+ *       A(D,C(B,E))       -> BFS 순서: A,D,C,B,E       (실패)
+ */
+int checkLevelOrder(void) {
+    int queue[MAXN];
+    int qh = 0, qt = 0;
+
+    queue[qt++] = rootIndex;
+
+    int expected = 0;
+    while (qh < qt) {
+        int node = queue[qh++];
+        if (node != expected) {
+            sprintf(errMsg,
+                "노드 이름은 레벨 순서(같은 레벨에서 왼쪽->오른쪽) 기준으로 "
+                "A부터 알파벳 순서대로 부여되어야 합니다. "
+                "('%c' 가 나온 자리에는 '%c' 가 와야 합니다.)",
+                node + 'A', expected + 'A');
+            return -1;
+        }
+        expected++;
+        for (int k = 0; k < childCount[node]; k++) {
+            queue[qt++] = childList[node][k];
+        }
+    }
+    return 0;
+}
+
 /* 왼쪽으로 눕힌 형태로 트리를 계층적으로 출력한다 (+, -, |, 들여쓰기 사용) */
-void printTree(int node, const char *prefix, int isLast, int isRoot) {
+void printTree(int node, const char* prefix, int isLast, int isRoot) {
     char newPrefix[512];
 
     if (isRoot) {
         printf("%c\n", node + 'A');
         newPrefix[0] = '\0';
-    } else {
+    }
+    else {
         printf("%s+---%c\n", prefix, node + 'A');
         if (isLast)
             sprintf(newPrefix, "%s    ", prefix);
@@ -189,13 +226,15 @@ void describeNode(char label) {
 
     if (parentOf[idx] == -1) {
         printf("'%c' 의 부모 노드: 없음 (루트 노드)\n", label);
-    } else {
+    }
+    else {
         printf("'%c' 의 부모 노드: %c\n", label, parentOf[idx] + 'A');
     }
 
     if (childCount[idx] == 0) {
         printf("'%c' 의 자식 노드: 없음 (단말 노드)\n", label);
-    } else {
+    }
+    else {
         printf("'%c' 의 자식 노드: ", label);
         for (int k = 0; k < childCount[idx]; k++) {
             printf("%c", childList[idx][k] + 'A');
@@ -229,11 +268,16 @@ int main(void) {
         return 1;
     }
 
+    if (checkLevelOrder() != 0) {
+        printf("[오류] 올바른 트리의 괄호 표기법이 아닙니다: %s\n", errMsg);
+        return 1;
+    }
+
     int leafCount = 0, internalCount = 0, height = 0, degree = 0;
     for (int i = 0; i < totalNodes; i++) {
         int idx = appearOrder[i];
         if (hasChildren[idx]) internalCount++; else leafCount++;
-        if (depthOf[idx] + 1 > height) height = depthOf[idx] + 1; /* 루트 = 레벨 1 */
+        if (depthOf[idx] + 1 > height) height = depthOf[idx]; /* 루트 = 레벨 0 */
         if (childCount[idx] > degree) degree = childCount[idx];
     }
 
