@@ -129,7 +129,7 @@ void printPtrNode(Node *n, const char *prefix, int isLast, int isRoot) {
 }
 
 int ptrHeight(Node *n) {
-    if (!n) return 0;
+    if (!n) return -1;             /* 높이는 0부터 시작하므로 빈 트리는 -1 */
     int l = ptrHeight(n->left);
     int r = ptrHeight(n->right);
     return 1 + (l > r ? l : r);
@@ -154,15 +154,16 @@ void printPtrInfo(Node *root) {
     printf("전체 노드의 수   : %d\n", total);
     printf("단말 노드의 수   : %d\n", leaf);
     printf("비단말 노드의 수 : %d\n", total - leaf);
-    printf("트리의 높이      : %d\n", height-1);
+    printf("트리의 높이      : %d\n", height);
     printf("트리의 차수      : %d\n", degree);
 }
 
 /* [3] 포인터 기반 형태 판별 */
 
-/* 완전 이진트리 : 큐(배열로 구현)를 이용한 레벨 순회.
- * NULL 을 만난 이후에 실제 노드가 또 나오면 완전 이진트리가 아니다. */
-int isCompletePtr(Node *root) {
+/* 왼쪽부터 채워짐(마지막 레벨만 부분적으로 채워질 수 있음) 판별 :
+ * 큐(배열로 구현)를 이용한 레벨 순회. NULL 을 만난 이후에
+ * 실제 노드가 또 나오면 왼쪽부터 채워진 형태가 아니다. */
+int isLeftFilledPtr(Node *root) {
     if (!root) return 1;
 
     Node *queue[1 << 16];   /* 노드 수가 최대 26개이므로 충분히 큰 여유 크기 */
@@ -211,14 +212,15 @@ void printPtrShape(Node *root) {
     collectPtrInfo(root, &total, &leaf, &degree);
     int height = ptrHeight(root);
 
-    int complete = isCompletePtr(root);
-    int perfect  = complete && (total == (1 << height) - 1);
+    int leftFilled    = isLeftFilledPtr(root);
+    int allLevelsFull = leftFilled && (total == (1 << (height + 1)) - 1);
 
     int dir = 0;
     int skewed = (total > 1) && checkSkewed(root, &dir);
 
-    printf("완전 이진트리 여부 : %s\n", perfect ? "예" : "아니오");
-    printf("포화 이진트리 여부 : %s\n", complete  ? "예" : "아니오");
+    /* 완전 이진트리 = 모든 레벨이 꽉 참 / 포화 이진트리 = 마지막 레벨만 왼쪽부터 채워짐 */
+    printf("완전 이진트리 여부 : %s\n", allLevelsFull ? "예" : "아니오");
+    printf("포화 이진트리 여부 : %s\n", leftFilled    ? "예" : "아니오");
     printf("편향 이진트리 여부 : %s\n", skewed   ? "예" : "아니오");
 }
 
