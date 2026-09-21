@@ -155,12 +155,12 @@ void printArrayInfo(void) {
     }
 
     int height = 0;
-    while ((1 << height) <= maxIndex) height++;   /* height = floor(log2(maxIndex)) + 1 */
+    while ((1 << (height + 1)) <= maxIndex) height++;   /* height = floor(log2(maxIndex)), 0부터 시작 */
 
     printf("전체 노드의 수   : %d\n", total);
     printf("단말 노드의 수   : %d\n", leaf);
     printf("비단말 노드의 수 : %d\n", total - leaf);
-    printf("트리의 높이      : %d\n", height-1);
+    printf("트리의 높이      : %d\n", height);
     printf("트리의 차수      : %d\n", degree);
 }
 
@@ -171,17 +171,18 @@ void printArrayShape(void) {
         if (g_arr[i]) { total++; if (i > maxIndex) maxIndex = i; }
     }
     int height = 0;
-    while ((1 << height) <= maxIndex) height++;
+    while ((1 << (height + 1)) <= maxIndex) height++;   /* 높이 0부터 시작 */
 
-    /* 완전 이진트리 : 1..total 이 모두 채워져 있고, 그 뒤는 모두 비어 있어야 함 */
-    int complete = 1;
-    for (int i = 1; i <= total; i++) if (!g_arr[i]) { complete = 0; break; }
-    if (complete) {
-        for (int i = total + 1; i < g_capacity; i++) if (g_arr[i]) { complete = 0; break; }
+    /* 왼쪽부터 채워짐(마지막 레벨만 부분적으로 채워질 수 있음) :
+     * 1..total 이 모두 채워져 있고, 그 뒤는 모두 비어 있어야 함 */
+    int leftFilled = 1;
+    for (int i = 1; i <= total; i++) if (!g_arr[i]) { leftFilled = 0; break; }
+    if (leftFilled) {
+        for (int i = total + 1; i < g_capacity; i++) if (g_arr[i]) { leftFilled = 0; break; }
     }
 
-    /* 포화 이진트리 : 완전 + 노드 수가 2^height - 1 */
-    int perfect = complete && (total == (1 << height) - 1);
+    /* 모든 레벨이 빈틈없이 꽉 참 : 노드 수가 2^(height+1) - 1 */
+    int allLevelsFull = leftFilled && (total == (1 << (height + 1)) - 1);
 
     /*
      * 편향 이진트리 : 두 자식을 모두 가진 노드가 없어야 할 뿐 아니라,
@@ -204,9 +205,10 @@ void printArrayShape(void) {
         }
     }
 
-    printf("완전 이진트리 여부 : %s\n", perfect ? "예" : "아니오");
-    printf("포화 이진트리 여부 : %s\n", complete  ? "예" : "아니오");
-    printf("편향 이진트리 여부 : %s\n", skewed   ? "예" : "아니오");
+    /* 완전 이진트리 = 모든 레벨이 꽉 참 / 포화 이진트리 = 마지막 레벨만 왼쪽부터 채워짐 */
+    printf("완전 이진트리 여부 : %s\n", allLevelsFull ? "예" : "아니오");
+    printf("포화 이진트리 여부 : %s\n", leftFilled    ? "예" : "아니오");
+    printf("편향 이진트리 여부 : %s\n", skewed        ? "예" : "아니오");
 }
 
 int findIndexByChar(char target) {
