@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 이진트리의 괄호 표기법을 입력받아 "배열"만으로 표현하고
  * [1] 출력  [2] 트리 정보  [3] 형태 판별 을 구현한다.
  *
@@ -21,7 +21,7 @@
 static char errMsg[256];
 static int  seen[26];
 
-static char* g_arr = NULL;   /* 1번 인덱스가 루트 */
+static char *g_arr = NULL;   /* 1번 인덱스가 루트 */
 static int   g_capacity = 0; /* 현재 할당된 크기 (0 ~ capacity-1 사용 가능) */
 
 /* idx 인덱스를 쓸 수 있을 때까지 배열을 동적으로 2배씩 늘린다. */
@@ -29,7 +29,7 @@ void ensureCapacity(int idx) {
     if (idx < g_capacity) return;
     int newCap = (g_capacity == 0) ? 2 : g_capacity;
     while (idx >= newCap) newCap *= 2;
-    char* newArr = (char*)realloc(g_arr, newCap);
+    char *newArr = (char *)realloc(g_arr, newCap);
     memset(newArr + g_capacity, 0, newCap - g_capacity);
     g_arr = newArr;
     g_capacity = newCap;
@@ -39,7 +39,7 @@ void ensureCapacity(int idx) {
  * s[*pos] 부터 시작하는 서브트리를 파싱하여 g_arr[idx] 이하에 채워 넣는다.
  * 성공하면 1, 실패하면 0을 반환하고 errMsg 를 채운다.
  */
-int parseIntoArray(const char* s, int* pos, int idx) {
+int parseIntoArray(const char *s, int *pos, int idx) {
     char ch = s[*pos];
 
     if (!isalpha((unsigned char)ch)) {
@@ -67,35 +67,29 @@ int parseIntoArray(const char* s, int* pos, int idx) {
         (*pos)++;                      /* ',' 소비: 왼쪽 없음 */
         if (isalpha((unsigned char)s[*pos])) {
             if (!parseIntoArray(s, pos, idx * 2 + 1)) return 0;
-        }
-        else if (s[*pos] == ')') {
+        } else if (s[*pos] == ')') {
             sprintf(errMsg, "'%c' 의 괄호 안이 완전히 비어 있습니다.", ch);
             return 0;
-        }
-        else {
+        } else {
             sprintf(errMsg, "'%c' 뒤 괄호 안의 내용이 올바르지 않습니다.", ch);
             return 0;
         }
-    }
-    else if (isalpha((unsigned char)s[*pos])) {
+    } else if (isalpha((unsigned char)s[*pos])) {
         if (!parseIntoArray(s, pos, idx * 2)) return 0;
 
         if (s[*pos] == ',') {
             (*pos)++;
             if (isalpha((unsigned char)s[*pos])) {
                 if (!parseIntoArray(s, pos, idx * 2 + 1)) return 0;
-            }
-            else if (s[*pos] == ')') {
+            } else if (s[*pos] == ')') {
                 /* "A(B,)" : 오른쪽 명시적으로 없음 */
-            }
-            else {
+            } else {
                 sprintf(errMsg, "'%c' 뒤 괄호 안의 내용이 올바르지 않습니다.", ch);
                 return 0;
             }
         }
         /* 콤마가 없으면 오른쪽은 그냥 없는 것("A(B)") */
-    }
-    else {
+    } else {
         sprintf(errMsg, "'%c' 뒤 괄호 안의 내용이 올바르지 않습니다.", ch);
         return 0;
     }
@@ -108,7 +102,7 @@ int parseIntoArray(const char* s, int* pos, int idx) {
     return 1;
 }
 
-int buildArray(const char* s) {
+int buildArray(const char *s) {
     memset(seen, 0, sizeof(seen));
     int n = (int)strlen(s);
     if (n == 0) { strcpy(errMsg, "입력이 비어 있습니다."); return 0; }
@@ -124,7 +118,7 @@ int buildArray(const char* s) {
 }
 
 /* [1] 배열 기반 출력 (왼쪽으로 눕힌 형태) */
-void printArrayNode(int idx, const char* prefix, int isLast, int isRoot) {
+void printArrayNode(int idx, const char *prefix, int isLast, int isRoot) {
     if (isRoot) printf("%c\n", g_arr[idx]);
     else        printf("%s+---%c\n", prefix, g_arr[idx]);
 
@@ -161,7 +155,7 @@ void printArrayInfo(void) {
     }
 
     int height = 0;
-    while ((1 << height) <= maxIndex) height++;
+    while ((1 << height) <= maxIndex) height++;   /* height = floor(log2(maxIndex)) + 1 */
 
     printf("전체 노드의 수   : %d\n", total);
     printf("단말 노드의 수   : %d\n", leaf);
@@ -211,8 +205,51 @@ void printArrayShape(void) {
     }
 
     printf("완전 이진트리 여부 : %s\n", perfect ? "예" : "아니오");
-    printf("포화 이진트리 여부 : %s\n", complete ? "예" : "아니오");
-    printf("편향 이진트리 여부 : %s\n", skewed ? "예" : "아니오");
+    printf("포화 이진트리 여부 : %s\n", complete  ? "예" : "아니오");
+    printf("편향 이진트리 여부 : %s\n", skewed   ? "예" : "아니오");
+}
+
+int findIndexByChar(char target) {
+    for (int i = 1; i < g_capacity; i++) {
+        if (g_arr[i] == target) return i;
+    }
+    return -1;
+}
+
+/* 특정 노드(target)의 자식 / 부모 / 형제 노드를 출력한다. */
+void printNodeRelations(char target) {
+    int idx = findIndexByChar(target);
+    if (idx == -1) {
+        printf("'%c' 노드는 트리에 존재하지 않습니다.\n", target);
+        return;
+    }
+
+    int li = 2 * idx, ri = 2 * idx + 1;
+    int hasL = (li < g_capacity && g_arr[li]);
+    int hasR = (ri < g_capacity && g_arr[ri]);
+
+    printf("'%c' 의 자식 노드: ", target);
+    if (!hasL && !hasR) {
+        printf("없음\n");
+    } else {
+        int first = 1;
+        if (hasL) { printf("%c", g_arr[li]); first = 0; }
+        if (hasR) { if (!first) printf(", "); printf("%c", g_arr[ri]); }
+        printf("\n");
+    }
+
+    if (idx == 1) {
+        printf("'%c' 의 부모 노드: 없음 (루트 노드)\n", target);
+        printf("'%c' 의 형제 노드: 없음 (루트 노드)\n", target);
+    } else {
+        int pIdx = idx / 2;
+        printf("'%c' 의 부모 노드: %c\n", target, g_arr[pIdx]);
+
+        int sibIdx = (idx % 2 == 0) ? idx + 1 : idx - 1;
+        int hasSib = (sibIdx < g_capacity && g_arr[sibIdx]);
+        if (hasSib) printf("'%c' 의 형제 노드: %c\n", target, g_arr[sibIdx]);
+        else        printf("'%c' 의 형제 노드: 없음\n", target);
+    }
 }
 
 int main(void) {
@@ -241,6 +278,22 @@ int main(void) {
     printArrayInfo();
     printf("\n[3] 트리 형태 판별\n");
     printArrayShape();
+
+    printf("\n정보를 조회할 노드를 입력하세요: ");
+    fflush(stdout);
+    char qbuf[64];
+    if (fgets(qbuf, sizeof(qbuf), stdin)) {
+        char target = 0;
+        for (int i = 0; qbuf[i] != '\0'; i++) {
+            if (isalpha((unsigned char)qbuf[i])) { target = qbuf[i]; break; }
+        }
+        if (target == 0) {
+            printf("올바른 노드 이름을 입력하지 않았습니다.\n");
+        } else {
+            printf("\n");
+            printNodeRelations(target);
+        }
+    }
 
     return 0;
 }
