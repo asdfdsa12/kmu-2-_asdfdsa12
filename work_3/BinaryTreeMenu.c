@@ -104,18 +104,18 @@ void read_child(Node* parent, Node** outLeft, Node** outRight) {
 }
 
 /* 왼쪽으로 눕힌 형태 출력 (이전 과제와 동일한 +, - 방식) */
-void printSubtree(Node* n, const char* prefix, int isLast, int isRoot) {
+void printSubtree(Node *n, const char *prefix, int isLast, int isRoot) {
     if (isRoot) printf("%c\n", n->data);
     else        printf("%s+---%c\n", prefix, n->data);
-
+ 
     char newPrefix[256];
     if (isRoot) newPrefix[0] = '\0';
-    else        sprintf(newPrefix, "%s%s", prefix, isLast ? "    " : "|   ");
-
-    Node* kids[2]; int kc = 0;
+    else        sprintf(newPrefix, "%s    ", prefix);   /* 항상 공백 4칸만 추가 */
+ 
+    Node *kids[2]; int kc = 0;
     if (n->left)  kids[kc++] = n->left;
     if (n->right) kids[kc++] = n->right;
-
+ 
     for (int k = 0; k < kc; k++) {
         printSubtree(kids[k], newPrefix, k == kc - 1, 0);
     }
