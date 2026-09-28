@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 괄호 표기법으로 이진트리를 입력받아 포인터 기반 연결 자료구조로 구성하고,
  * 전위/중위/후위 순회를 "재귀 없이" 스택만으로 반복적으로 수행하는 프로그램.
  *
@@ -119,133 +119,33 @@ Node* parseTree(const char* s) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  트리 구조 출력 ( / 와 \ 를 이용한 형태 )                            */
-/*                                                                      */
-/*  각 서브트리를 문자열 여러 줄로 이루어진 "박스"로 만들고,             */
-/*  왼쪽 박스 + 연결선( _ / \ ) + 오른쪽 박스를 이어붙이는 방식으로      */
-/*  재귀적으로 조립한다. (이 함수는 순회가 아니라 화면 출력용이므로      */
-/*  재귀를 써도 과제의 "순회는 반복적으로" 조건과 무관하다.)             */
+/*  트리 구조 출력 ( + 와 - 를 이용한 형태 )                            */
+/*  자식은 부모보다 항상 공백 4칸 더 들여써서 "+---노드" 로 표시한다.    */
+/*  (화면 출력용이므로 재귀를 써도 "순회는 반복적으로" 조건과 무관)      */
 /* ------------------------------------------------------------------ */
-#define MAXLINES 80
-#define MAXWIDTH 256
+void printSubtree(Node* n, const char* prefix, int isLast, int isRoot) {
+    if (isRoot) printf("%c\n", n->data);
+    else        printf("%s+---%c\n", prefix, n->data);
 
-typedef struct {
-    char lines[MAXLINES][MAXWIDTH];
-    int  nlines;
-    int  width;
-    int  middle;   /* 이 박스 안에서 루트 문자가 위치한 열(column) */
-} Box;
+    char newPrefix[256];
+    if (isRoot) newPrefix[0] = '\0';
+    else        sprintf(newPrefix, "%s    ", prefix);   /* 항상 공백 4칸만 추가 */
 
-void repeatCh(char* dst, char c, int count) {
-    for (int i = 0; i < count; i++) dst[i] = c;
-    dst[count] = '\0';
+    Node* kids[2]; int kc = 0;
+    if (n->left)  kids[kc++] = n->left;
+    if (n->right) kids[kc++] = n->right;
+
+    for (int k = 0; k < kc; k++) {
+        printSubtree(kids[k], newPrefix, k == kc - 1, 0);
+    }
 }
 
-void display(Node* node, Box* out) {
-    if (node->left == NULL && node->right == NULL) {
-        out->nlines = 1;
-        out->width = 1;
-        out->middle = 0;
-        sprintf(out->lines[0], "%c", node->data);
+void printTreePlusStyle(Node* root) {
+    if (root == NULL) {
+        printf("트리가 비어 있습니다.\n");
         return;
     }
-
-    if (node->right == NULL) {                 /* 왼쪽 자식만 있음 */
-        Box* L = (Box*)malloc(sizeof(Box));   /* 스택이 아닌 힙에 할당 */
-        display(node->left, L);
-        int n = L->width, p = L->nlines, x = L->middle;
-        char seg1[MAXWIDTH], seg2[MAXWIDTH], line[MAXWIDTH];
-
-        repeatCh(seg1, ' ', x + 1);
-        repeatCh(seg2, '_', n - x - 1);
-        sprintf(line, "%s%s%c", seg1, seg2, node->data);
-        strcpy(out->lines[0], line);
-
-        repeatCh(seg1, ' ', x);
-        repeatCh(seg2, ' ', n - x - 1 + 1);
-        sprintf(line, "%s/%s", seg1, seg2);
-        strcpy(out->lines[1], line);
-
-        for (int i = 0; i < p; i++) sprintf(out->lines[2 + i], "%s ", L->lines[i]);
-
-        out->nlines = p + 2;
-        out->width = n + 1;
-        out->middle = n;
-        free(L);
-        return;
-    }
-
-    if (node->left == NULL) {                  /* 오른쪽 자식만 있음 */
-        Box* R = (Box*)malloc(sizeof(Box));   /* 스택이 아닌 힙에 할당 */
-        display(node->right, R);
-        int n = R->width, p = R->nlines, x = R->middle;
-        char seg1[MAXWIDTH], seg2[MAXWIDTH], line[MAXWIDTH];
-
-        repeatCh(seg1, '_', x);
-        repeatCh(seg2, ' ', n - x);
-        sprintf(line, "%c%s%s", node->data, seg1, seg2);
-        strcpy(out->lines[0], line);
-
-        repeatCh(seg1, ' ', 1 + x);
-        repeatCh(seg2, ' ', n - x - 1);
-        sprintf(line, "%s\\%s", seg1, seg2);
-        strcpy(out->lines[1], line);
-
-        for (int i = 0; i < p; i++) sprintf(out->lines[2 + i], " %s", R->lines[i]);
-
-        out->nlines = p + 2;
-        out->width = n + 1;
-        out->middle = 0;
-        free(R);
-        return;
-    }
-
-    /* 양쪽 자식 모두 있음 */
-    Box* L = (Box*)malloc(sizeof(Box));       /* 스택이 아닌 힙에 할당 */
-    display(node->left, L);
-    Box* R = (Box*)malloc(sizeof(Box));       /* 스택이 아닌 힙에 할당 */
-    display(node->right, R);
-    int n = L->width, p = L->nlines, x = L->middle;
-    int m = R->width, q = R->nlines, y = R->middle;
-    char seg1[MAXWIDTH], seg2[MAXWIDTH], seg3[MAXWIDTH], seg4[MAXWIDTH], line[MAXWIDTH];
-
-    repeatCh(seg1, ' ', x + 1);
-    repeatCh(seg2, '_', n - x - 1);
-    repeatCh(seg3, '_', y);
-    repeatCh(seg4, ' ', m - y);
-    sprintf(line, "%s%s%c%s%s", seg1, seg2, node->data, seg3, seg4);
-    strcpy(out->lines[0], line);
-
-    repeatCh(seg1, ' ', x);
-    repeatCh(seg2, ' ', n - x - 1 + 1 + y);
-    repeatCh(seg3, ' ', m - y - 1);
-    sprintf(line, "%s/%s\\%s", seg1, seg2, seg3);
-    strcpy(out->lines[1], line);
-
-    int maxp = (p > q) ? p : q;
-    for (int i = 0; i < maxp; i++) {
-        const char* lline = (i < p) ? L->lines[i] : NULL;
-        const char* rline = (i < q) ? R->lines[i] : NULL;
-        char lbuf[MAXWIDTH], rbuf[MAXWIDTH];
-        if (lline) strcpy(lbuf, lline); else repeatCh(lbuf, ' ', n);
-        if (rline) strcpy(rbuf, rline); else repeatCh(rbuf, ' ', m);
-        sprintf(out->lines[2 + i], "%s %s", lbuf, rbuf);
-    }
-
-    out->nlines = maxp + 2;
-    out->width = n + m + 1;
-    out->middle = n;
-    free(L);
-    free(R);
-}
-
-void printTreeSlashStyle(Node* root) {
-    Box* box = (Box*)malloc(sizeof(Box));
-    display(root, box);
-    for (int i = 0; i < box->nlines; i++) {
-        printf("%s\n", box->lines[i]);
-    }
-    free(box);
+    printSubtree(root, "", 1, 1);
 }
 
 /* ------------------------------------------------------------------ */
@@ -349,7 +249,7 @@ int main(void) {
     }
 
     printf("\n[1] 입력된 이진트리의 구조\n");
-    printTreeSlashStyle(root);
+    printTreePlusStyle(root);
 
     printf("\n[2] 전위 순회 (Preorder)\n");
     printf("Preorder  : ");
